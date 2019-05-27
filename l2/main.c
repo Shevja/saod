@@ -1,157 +1,94 @@
-#include "bctree.h"
-#include "hashtab.h"
+#include "bstree.h"
+#include <sys/time.h>
+#include <string.h>
 
-#define RESET "\033[0m"
-#define GREEN "\033[1;32m"
-#define RED   "\033[1;31m"
-#define CYAN  "\033[1;36m"
+int getrand(int min, int max)
+{
+    return (double)rand() / (RAND_MAX + 1.0) * (max - min) + min;
+}
+
+double wtime()
+{
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    return (double)t.tv_sec + (double)t.tv_usec * 1E-6;
+}
 
 int main() {
-    struct bstree *tree, *node;
+	struct bstree *tree, *node;
+	char words[200000][25];
+	char *w;
+    char file[25];
+
+    printf("Функция bstree_lookup\n");
+	FILE *op_f = fopen("wars.txt", "r");
+	if (op_f == NULL) {
+		printf("НЕТ ФАЙЛА\n");
+		return 0;
+	}
+	for (int i = 0; i < 200000; i++) {
+		fscanf(op_f, "%s", words[i]);
+	}
+	fclose(op_f);
+
+    tree = bstree_create(words[0], 0);
+    for (int i = 2; i <= 200000; i++) {
+        bstree_add(tree, words[i - 1], i - 1);
+        if (i % 10000 == 0) {
+            w = words[getrand(0, i - 1)];
+            double t = wtime();
+            node = bstree_lookup(tree, w);
+            t = wtime() - t;
+            printf("n = %d; time = %.6lf\n", i, t);
+        }
+    }
+    printf("\n");
     
-    char words[200000][25];
-    char *w;
+    printf("Функция bstree_max(с)\n");
+	op_f = fopen("wars.txt", "r");
+	if (op_f == NULL) {
+		printf("НЕТ ФАЙЛА\n");
+		return 0;
+	}
+	for (int i = 0; i < 200000; i++) {
+		fscanf(op_f, "%s", words[i]);
+	}
+	fclose(op_f);
     
-    struct listnode *hnode;
-    struct listnode *hashtab[200000];
+    tree = bstree_create(words[0], 0);
+    for (int i = 2; i <= 200000; i++) {
+        bstree_add(tree, words[i - 1], i - 1);
+        if (i % 10000 == 0) {
+            double t = wtime();
+            node = bstree_max(tree);
+            t = wtime() - t;
+            printf("n = %d; time = %.6lf\n", i, t);
+        }
+    }
+    printf("\n");
     
-    int j = 1, n = 1, choose = 0;
+    printf("Функция bstree_max(х)\n");
+
+	op_f = fopen("warh.txt", "r");
+	if (op_f == NULL) {
+		printf("НЕТ ФАЙЛА\n");
+		return 0;
+	}
+	for (int i = 0; i < 200000; i++) {
+		fscanf(op_f, "%s", words[i]);
+	}
+	fclose(op_f);
     
-    hashtab_init(hashtab);
-    FILE *fo = fopen("words.txt", "r");
-    
-    if (fo == NULL) 
-    {
-        printf("fail not found\n");
-        return 0;
+    tree = bstree_create(words[0], 0);
+    for (int i = 2; i <= 200000; i++) {
+        bstree_add(tree, words[i - 1], i - 1);
+        if (i % 10000 == 0) {
+            double t = wtime();
+            node = bstree_max(tree);
+            t = wtime() - t;
+            printf("n = %d; time = %.6lf\n", i, t);
+        }
     }
 
-    for (int i = 0; i < 200000; i++) 
-    {
-        fscanf(fo, "%s", words[i]);
-    }
-    fclose(fo);
-    
-    printf("Choose ur experiment:\n 1-treelookup\n 2-hashlookup\n 3-treeadd\n 4-hashadd\n ");
-    scanf("%d", &choose);
-    
-    if (choose == 1) 
-    {
-        tree = bstree_create(words[0], 0);
-        printf("%s\t\t\tBSTREE LOOKUP%s\n", RED, RESET);
-        printf("%sЭлементов: \t %sВремя, с \t Слово:%s\n", RED, GREEN, RESET);
-        
-	for (int i = 1; i <= 200000; i++) 
-	{
-            bstree_add(tree, words[i], i);
-            
-	    if (i % 10000 == 0) 
-	    {
-                w = words[rand() % i];
-                double begin_1 = clock();
-                
-		srand(time(NULL));
-                node = bstree_lookup(tree, w);
-                double end_1 = clock();
-                double time = difftime(end_1, begin_1) / 1000000;
-                
-		printf("%d\t\t %f\t ", i, time);
-                printf("%s\n", node->key);
-            }
-        }
-    } else if (choose == 2) 
-    {
-        printf("%s\t\t\tHASHTAB LOOKUP%s\n", RED, RESET);
-        printf("%sЭлементов: \t %sВремя, с \t %sКоллизий: \t Слово:%s\n", RED, GREEN, CYAN, RESET);
-        
-	for (int i = 1; i <= 200000; i++) 
-	{
-            hashtab_add(hashtab, words[i], i);
-            
-	    if (i % 10000 == 0) 
-	    {
-                w = words[rand() % i];
-                double begin_1 = clock();
-                
-		srand(time(NULL));
-                hnode = hashtab_lookup(hashtab, w);
-                double end_1 = clock();
-                double time = difftime(end_1, begin_1) / 1000000;
-                
-		printf("%d\t\t %f\t ", i, time);
-            }
-            if (i % 10000 == 0) 
-	    {
-                unsigned int collision;
-                collision = 0;
-                
-		for (int f = 0; f < i; f++) 
-		{
-                    if (hashtab[f] != NULL) 
-		    {
-                        struct listnode *trp = hashtab[f];
-                        while (trp->next != NULL) 
-			{
-                            collision++;
-                            trp = trp->next;
-                        }
-                    }
-                }
-                
-		printf("%d\t\t ", collision);
-                printf("%s\n", hnode->key);
-            }
-        }
-    } else if (choose == 3) 
-    {
-        tree = bstree_create(words[0], 0);
-        
-	printf("%s\t\t\tBSTREE ADD%s\n", RED, RESET);
-        printf("%sЭлементов: \t %sВремя, с \t Слово:%s\n", RED, GREEN, RESET);
-        
-	for (int i = 1; i <= 200000; i++) 
-	{
-            bstree_add(tree, words[i], i);
-            
-	    if (i % 10000 == 0) 
-	    {
-                w = words[rand() % i];
-                double begin_1 = clock();
-                
-		srand(time(NULL));
-                bstree_add(tree, w, n + 200000);
-                double end_1 = clock();
-                double time = difftime(end_1, begin_1) / 1000000;
-                
-		printf("%d\t\t %f\t ", i, time);
-                printf("%s\n", w);
-                n++;
-            }
-        }
-    } else if (choose == 4) 
-    {
-        printf("%s\t\t\tHASHTAB ADD%s\n", RED, RESET);
-        printf("%sЭлементов: \t %sВремя, с \t Слово:%s\n", RED, GREEN, RESET);
-        
-	for (int i = 1; i <= 200000; i++) 
-	{
-            hashtab_add(hashtab, words[i], i);
-            
-	    if (i % 10000 == 0) 
-	    {
-                w = words[rand() % i];
-                double begin_1 = clock();
-                
-		srand(time(NULL));
-                hashtab_add(hashtab, w, j + 200000);
-                double end_1 = clock();
-                double time = difftime(end_1, begin_1) / 1000000;
-                
-		printf("%d\t\t %f\t ", i, time);
-                printf("%s\n", w);
-                j++;
-            }
-        }
-    }
-    return 0;
+	return 0;
 }
